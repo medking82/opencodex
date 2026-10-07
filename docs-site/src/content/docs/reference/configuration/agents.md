@@ -6,6 +6,19 @@ description: Multi-agent surfaces, delegation guidance, preferred models, fallba
 Agent settings control which Codex collaboration surface is advertised and how opencodex guides,
 routes, and limits delegated work.
 
+For a memory-constrained local model, opt in with `singleAgentModels: ["local/provider-model"]`.
+Use the actual provider/model destination, including when the client selects an alias. Matching
+routed catalog rows advertise `multi_agent_version: "disabled"` and no parallel tool calls.
+The proxy also removes native agent tools and validates JSON/SSE output before client dispatch.
+Text still streams; one ordinary tool is released only after its completed batch is known.
+Incomplete or multiple-call batches fail without releasing held calls, and marked child turns fail
+before inference or fallback. Other ingress and adapter-owned agent loops are refused.
+
+This controls Codex collaboration and emitted tool batches, not arbitrary shell programs or
+child creation by a separate native parent. Permissions still apply. Configure the local provider's
+`autoReviewModelOverrides` independently when automatic approval review should use a native model.
+Do not enable plaintext task recovery or cloud worker fallback to work around this restriction.
+
 ## Agent fields
 
 ### Skills catalog refresh
@@ -52,6 +65,7 @@ still depends on upstream support for your account.
 | `injectionEffort?` | `string` | — | Preferred effort (`low` through `ultra`), meaningful only with `injectionModel`. |
 | `injectionPrompt?` | `string` | — | Replaces the built-in v2 guidance body. Supports `{{model}}`, `{{effort}}`, `{{roster}}`, and `{{fallback}}`. A configured `injectionModel` is sufficient to render the custom prompt. |
 | `multiAgentGuidanceEnabled?` | `boolean` | `true` | Controls only opencodex-authored v1/v2 developer guidance; it does not change native agent defaults, tools, routing, rosters, or effort caps. |
+| `singleAgentModels?` | `string[]` | unset | Resolved `provider/model` destinations that run only as the main agent: no native delegation or child inference, and one ordinary client tool call per response. Requires Responses ingress; native permissions and the separate auto-review role stay intact. |
 | `syncCodexSubagentDefaults?` | `boolean` | `false` | Opt into writing `injectionModel` and optional `injectionEffort` as Codex's native defaults during sync/restart. Requires `injectionModel`. |
 | `subagentModelFallback?` | `string[]` | `[]` | Priority-ordered global fallback models for spawned child turns. |
 | `subagentModelFallbackByModel?` | `Record<string, string[]>` | `{}` | Per-primary-model fallback chains, keyed by the requested primary model id. This is the supported home for per-role fallback metadata; `model_fallback` inside Codex agent TOML makes Codex 0.146+ skip the role (#1190). |

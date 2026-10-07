@@ -1,4 +1,6 @@
 import { isNativeControlResponse } from "./native-response-control";
+import { isSingleAgentModel } from "../../codex/model-capability-policy";
+import { createSingleAgentToolGuardBlockRewrite, singleAgentResponseViolation, singleAgentErrorResponse } from "../responses-single-agent-guard";
 import { createOutboundCredentialMask, createTerminalErrorRedactionBlockRewrite } from "./terminal-error-redaction";
 import type { ResponsesRequestContext, ResponsesAdmissionState } from "./core-options";
 import type { PreparedResponsesRequest } from "./request-prepare";
@@ -18,7 +20,7 @@ import {
   relayWithAbort,
 } from "../relay";
 import { isUsageDebugEnabled } from "../../usage/debug";
-import { isNonReplayableResponse, isReplayRefusalResponse } from "../../lib/upstream-retry";
+import { isNonReplayableResponse, isReplayRefusalResponse, markResponseNonReplayable } from "../../lib/upstream-retry";
 import { sanitizeNonReplayableUpstreamError } from "./non-replayable-error";
 import { teeWithBoundedInspection } from "../inspection-tee";
 import {
@@ -376,6 +378,7 @@ export async function deliverPassthroughResponse(
     | "plaintextV2AgentMessageAliasedToolNames"
     | "recordTerminalOutcomes"
     | "responseCompletionCancelled"
+    | "cancelResponseCompletion"
   >,
   nativeExchange: Pick<
     PassthroughExchange,
@@ -429,6 +432,7 @@ export async function deliverPassthroughResponse(
   } = nativeExchange;
   const { commitReasoningReplayServingRoute, recordTerminalOutcomes } = responseEffects;
   const { parsed, route, subagentQuotaFailureModel, clientRequestedStream, translatorBudget } = requestState;
+  const singleAgent = isSingleAgentModel(config, route);
   const { openAiSidecar } = sidecarState;
   const { requestBindings } = transportState;
 
@@ -766,7 +770,7 @@ export async function deliverPassthroughResponse(
       const plaintextInspector = !canonicalBufferedJson
         && !grokUpstreamEchoEnabled
         && responseEffects.plaintextV2AgentMessageToolNames.size > 0
-        ? createSseInspector({ onCompletedResponse: rememberPassthroughResponseChecked })
+        ? createSseInspector({ onCompletedResponse: singleAgent ? undefined : rememberPassthroughResponseChecked })
         : undefined;
       const plaintextEncoder = plaintextInspector ? new TextEncoder() : undefined;
       const rememberPlaintextBlock = plaintextInspector
@@ -840,10 +844,14 @@ export async function deliverPassthroughResponse(
           : undefined,
         grokUpstreamEchoEnabled
           ? createGrokUpstreamEnvelopeEchoBlockRewrite(
-            rememberPassthroughResponse ? rememberPassthroughResponseChecked : undefined,
+            rememberPassthroughResponse && !singleAgent ? rememberPassthroughResponseChecked : undefined,
           )
           : undefined,
         createTerminalErrorRedactionBlockRewrite(nativeExchange.request.headers, maskCredential),
+        singleAgent ? createSingleAgentToolGuardBlockRewrite({
+          onCompletedResponse: !canonicalBufferedJson ? rememberPassthroughResponseChecked : undefined,
+          onFailure: responseEffects.cancelResponseCompletion,
+        }) : undefined,
         rememberPlaintextBlock,
         // Display-only projection must follow every continuation-cache observer.
         isLocalCodexImageClient(req.headers, options.admission?.kind, options.inboundWire)
@@ -1095,7 +1103,7 @@ export async function deliverPassthroughResponse(
         const inspector = createSseInspector({
           onTerminal: reportNativeTerminal,
           logCtx,
-          onCompletedResponse: rememberPassthroughResponse && !grokUpstreamEchoEnabled && responseEffects.plaintextV2AgentMessageToolNames.size === 0 ? rememberPassthroughResponseChecked : undefined,
+          onCompletedResponse: rememberPassthroughResponse && !singleAgent && !grokUpstreamEchoEnabled && responseEffects.plaintextV2AgentMessageToolNames.size === 0 ? rememberPassthroughResponseChecked : undefined,
           onParsedPayload: noteInspectedPayload,
           onFirstOutput: options.onFirstOutput,
           pinCompletedResponseIdToFirstSeen: githubCopilotRepairEnabled,
@@ -1142,12 +1150,14 @@ export async function deliverPassthroughResponse(
         // forced-rewrite traffic, and Darwin explicit eager traffic apply
         // client rewrites inline rather than via the tee()+JS-pull chain.
         if (!headers.has("content-type")) headers.set("content-type", "text/event-stream");
-        return markEagerRelaySseResponse(
+        const delivered = markEagerRelaySseResponse(
           markNativePassthroughSseResponse(new Response(eagerBody, {
             status: upstreamResponse.status,
             headers,
           })),
         );
+        if (singleAgent) markResponseNonReplayable(delivered);
+        return delivered;
       }
       const turnAc = new AbortController();
       const clientGone = new AbortController();
@@ -1198,7 +1208,7 @@ export async function deliverPassthroughResponse(
             responseEffects.responseCompletionCancelled = true;
             options.onNativePassthroughCancel?.();
           },
-          rememberPassthroughResponse && !grokUpstreamEchoEnabled && responseEffects.plaintextV2AgentMessageToolNames.size === 0 ? rememberPassthroughResponseChecked : undefined,
+          rememberPassthroughResponse && !singleAgent && !grokUpstreamEchoEnabled && responseEffects.plaintextV2AgentMessageToolNames.size === 0 ? rememberPassthroughResponseChecked : undefined,
           options.onFirstOutput,
           inspectionConsumerOptions,
         );
@@ -1208,7 +1218,7 @@ export async function deliverPassthroughResponse(
           logCtx,
           turnAc.signal,
           () => unregisterTurn(turnAc),
-          rememberPassthroughResponse && !grokUpstreamEchoEnabled && responseEffects.plaintextV2AgentMessageToolNames.size === 0 ? rememberPassthroughResponseChecked : undefined,
+          rememberPassthroughResponse && !singleAgent && !grokUpstreamEchoEnabled && responseEffects.plaintextV2AgentMessageToolNames.size === 0 ? rememberPassthroughResponseChecked : undefined,
           options.onFirstOutput,
           inspectionConsumerOptions,
         );
@@ -1229,10 +1239,12 @@ export async function deliverPassthroughResponse(
         },
         { upstreamError: logCtx.upstreamError, terminalBoundary: codexSafetyBufferingOptions, maskCredential },
       );
-      return markNativePassthroughSseResponse(new Response(clientBody, {
+      const delivered = markNativePassthroughSseResponse(new Response(clientBody, {
         status: upstreamResponse.status,
         headers,
       }));
+      if (singleAgent) markResponseNonReplayable(delivered);
+      return delivered;
     }
     if (headers.get("content-type")?.toLowerCase().includes("application/json")) {
       // Bounded whole-body read: a non-streaming upstream JSON body is fully materialized
@@ -1313,13 +1325,21 @@ export async function deliverPassthroughResponse(
           }
         })();
         if (undeclared !== undefined) {
-          return formatErrorResponse(502, "upstream_error", undeclaredToolCallMessage(undeclared));
+          const refusal = formatErrorResponse(502, "upstream_error", undeclaredToolCallMessage(undeclared));
+          if (singleAgent) markResponseNonReplayable(refusal);
+          return refusal;
         }
         clientJson = normalizeDefaultNamespaceInJson(
           clientJson,
           declaredWireToolNames,
           declaredBareWireToolNames,
         );
+      }
+      if (isSingleAgentModel(config, route)) {
+        let violation: ReturnType<typeof singleAgentResponseViolation>;
+        try { violation = singleAgentResponseViolation(JSON.parse(clientJson)); }
+        catch { violation = "single_agent_invalid_response"; }
+        if (violation) return singleAgentErrorResponse(violation);
       }
       commitReasoningReplayServingRoute(nativeExchange.request.headers);
       try {

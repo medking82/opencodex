@@ -1,4 +1,5 @@
 import { projectAntigravitySelectedModels } from "../providers/antigravity-effort-families";
+import { applySingleAgentCatalogPolicy } from "./model-capability-policy";
 import { join } from "node:path";
 import { sameCatalogHealPath } from "./catalog/heal-observation";
 
@@ -411,6 +412,7 @@ function prepareCatalog(
       : null,
   );
   finalizeAutoReviewModelOverride(mergedModels, catalogModels, config);
+  applySingleAgentCatalogPolicy(mergedModels, config);
   // The second writer of this file. A dashboard model toggle, a combo edit, or a Codex account
   // login reaches `convergeCodexCatalog` and commits through `fixedCommit`, never through
   // `writeRetainedCatalogSync`, so the #4730 uniqueness guard has to stand here too or the same

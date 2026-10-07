@@ -15,6 +15,7 @@ description: 多代理界面、委派引导、首选模型、回退链、原生�
 | `injectionEffort?` | `string` | — | 首选 effort（`low` 到 `ultra`），只有在 `injectionModel` 存在时才有意义。 |
 | `injectionPrompt?` | `string` | — | 替换内置 v2 指引正文。支持 `{{model}}`、`{{effort}}`、`{{roster}}` 和 `{{fallback}}`。只要配置了 `injectionModel`，自定义提示词就会触发。 |
 | `multiAgentGuidanceEnabled?` | `boolean` | `true` | 只控制 opencodex 生成的 v1/v2 开发者引导；不会改变原生代理默认值、工具、路由、名单或 effort 上限。 |
+| `singleAgentModels?` | `string[]` | unset | 指定 resolved `provider/model` 的 single-agent policy：禁止 native delegation 和 child inference，每次只交付一个普通 tool call。仅支持 Responses ingress；不改变 native permissions 或独立的 auto-review role。 |
 | `syncCodexSubagentDefaults?` | `boolean` | `false` | 允许在同步或重启时，将 `injectionModel` 以及可选的 `injectionEffort` 写入为 Codex 的原生默认值。需要 `injectionModel`。 |
 | `subagentModelFallback?` | `string[]` | `[]` | 按优先级排序的全局回退模型，用于派生的子轮次。 |
 | `subagentModelFallbackByModel?` | `Record<string, string[]>` | `{}` | 按请求的主模型 id 做键的 per-model 回退链。这是 per-role fallback 元数据的受支持存放位置；`model_fallback` 写在 Codex agent TOML 里会让 Codex 0.146+ 跳过该角色（#1190）。 |

@@ -61,7 +61,7 @@ import {
 import { formatErrorResponse } from "../../bridge";
 import { mapCodexAuthContextErrorToResponse } from "./codex-auth-error";
 import type { OcxParsedRequest } from "../../types";
-import { buildToolBridgeMaps } from "./collaboration";
+import { buildToolBridgeMaps, injectDeveloperMessage } from "./collaboration";
 import { parseRequest } from "../../responses/parser";
 import { anthropicSessionKeyFromParts } from "../../oauth/anthropic-routing";
 import { isTranslatorBudgetExceededError } from "../../lib/translator-budget";
@@ -114,6 +114,8 @@ import {
 import { isInjectionDebugEnabled } from "../../lib/debug-settings";
 import { injectionDebugLog } from "../../lib/injection-debug-log";
 import { slugsEquivalent } from "../../providers/slug-codec";
+import { isSingleAgentModel, applySingleAgentRequestPolicy, SingleAgentWorkerDisabledError } from "../../codex/model-capability-policy";
+import { singleAgentErrorResponse } from "../responses-single-agent-guard";
 import type { AgentTaskRecoveryFailureReason } from "./agent-task-recovery";
 import { resolveWireProtocolOverride } from "../adapter-resolve";
 import { hasUnmappedRoutedCustomToolOutput } from "../../responses/custom-tool-compat";
@@ -524,6 +526,7 @@ export async function prepareResponsesRequest(
   const inboundSelector = parsed.modelId;
   const admissionScope = resolveAdmissionModelScope(config, options.admission);
   const captureInboundRoutePolicy = (candidate: RouteResult, captureRequestPolicy = true): RouteResult => {
+    if (threadSpawn && isSingleAgentModel(config, candidate)) throw new SingleAgentWorkerDisabledError();
     // Every route this request path produces passes through here: the direct
     // name, an alias, a policy or combo selection, a compaction override, a
     // shadow-intercept target and both subagent-fallback re-routes. Checking
@@ -646,6 +649,7 @@ export async function prepareResponsesRequest(
   } catch (err) {
     const policyRefusal = policyCandidateRefusalResponse(err);
     if (policyRefusal) return policyRefusal;
+    if (err instanceof SingleAgentWorkerDisabledError) return singleAgentErrorResponse(err.code, err.message);
     if (err instanceof AdmissionModelDeniedError) return admissionModelDeniedResponse(err);
     if (err instanceof NoAvailableComboTargetsError) {
       return comboUnavailable(err.comboId);
@@ -863,6 +867,7 @@ export async function prepareResponsesRequest(
       } catch (err) {
         const policyRefusal = policyCandidateRefusalResponse(err);
         if (policyRefusal) return policyRefusal;
+        if (err instanceof SingleAgentWorkerDisabledError) return singleAgentErrorResponse(err.code, err.message);
         if (err instanceof AdmissionModelDeniedError) return admissionModelDeniedResponse(err);
         if (err instanceof NoAvailableComboTargetsError) {
           return comboUnavailable(err.comboId);
@@ -1079,6 +1084,7 @@ export async function prepareResponsesRequest(
             } catch (err) {
               const policyRefusal = policyCandidateRefusalResponse(err);
               if (policyRefusal) return policyRefusal;
+              if (err instanceof SingleAgentWorkerDisabledError) return singleAgentErrorResponse(err.code, err.message);
               if (err instanceof AdmissionModelDeniedError) return admissionModelDeniedResponse(err);
               if (err instanceof NoAvailableComboTargetsError) {
                 return comboUnavailable(err.comboId);
@@ -1098,6 +1104,14 @@ export async function prepareResponsesRequest(
         }
       }
     }
+  }
+
+  if (isSingleAgentModel(config, route)) {
+    if (inboundWire !== "responses") return singleAgentErrorResponse("single_agent_unsupported_transport", "Single-agent policy requires Responses ingress.");
+    const refusal = applySingleAgentRequestPolicy(parsed);
+    if (refusal) return singleAgentErrorResponse("single_agent_delegation_disabled", refusal);
+    injectDeveloperMessage(parsed, "<model_capabilities>This model runs as a single agent. Do not spawn, resume or delegate to workers. Perform the task with the main agent and one ordinary tool at a time, waiting for each result before the next step. Automatic permission review remains a separate native role.</model_capabilities>");
+    toolBridgeMaps = buildToolBridgeMaps(parsed, translatorBudget);
   }
 
   if (options.abortSignal?.aborted) return clientCancelledResponse();
