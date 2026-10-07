@@ -88,6 +88,8 @@ import type { AttemptRecoveryKind } from "../../usage/log";
 import { bindAttemptDeliveryRecorder } from "../../usage/attempt-delivery";
 import { resolvePassiveRouteSubjectId } from "../passive-route-linker";
 import { clientCancelledResponse } from "./core-errors";
+import { isSingleAgentModel } from "../../codex/model-capability-policy";
+import { singleAgentErrorResponse } from "../responses-single-agent-guard";
 import { acquireAccountLease, KIRO_ACCOUNT_WAIT_MS } from "../../oauth/kiro-account-load";
 
 /** Owns live credential selection and adapter bindings for one request. */
@@ -818,6 +820,7 @@ export async function prepareResponsesTransport(
     delete logCtx.accountLogLabel;
   }
   adapter = resolveSelectionAdapter(adapterProvider, config.cacheRetention);
+  if (isSingleAgentModel(config, route) && adapter.runTurn) return singleAgentErrorResponse("single_agent_unsupported_transport", "Single-agent policy does not support an adapter-owned agent loop.");
   bindRouteReasoningReplayScope({
     parsed,
     providerName: route.providerName,

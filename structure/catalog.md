@@ -2,7 +2,7 @@
 
 Activation-owned metadata discovery no longer refreshes known deadlines merely because quota snapshots age. See the [quota activation contract](providers/openai-tiers.md#public-provider-contract).
 
-Native result continuations and function-result injection follow [the mode-specific result and control contract](transports/streaming-health.md#experimental-native-function-result-injection); this surface does not infer upstream support or alter its defaults.
+Native result continuations and function-result injection follow [the mode-specific result and control contract](transports/streaming-health.md#experimental-native-function-result-injection); this surface does not infer upstream support or alter its defaults. Final live and persisted projections also apply the [single-agent contract](subagents.md#per-model-single-agent-policy), after global collaboration stamping; sync does not prove Desktop reload.
 Explicit Codex CLI installation observation supplies no selected-runtime proof to catalog discovery or publication. See the [read-only observation contract](runtime.md#explicit-codex-cli-installation-observation).
 
 Native steering follows [the shared WebSocket contract](transports/streaming-health.md#experimental-native-mid-turn-steering); this surface's defaults remain unchanged.

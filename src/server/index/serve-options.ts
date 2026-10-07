@@ -1,4 +1,5 @@
 import type { Server, ServerWebSocket } from "bun";
+import { applySingleAgentCatalogPolicy } from "../../codex/model-capability-policy";
 import type { StartServerDeps } from "./startup-warnings";
 import {
   GUI_PAIRING_EXCHANGE_BODY_LIMIT,
@@ -1102,6 +1103,7 @@ export function createServeOptions(ctx: ServeOptionsContext) {
             config.keepNativeChatGptOnV1 === true,
             config.modelPickerOrder,
           );
+          applySingleAgentCatalogPolicy(entries, config);
           return jsonResponse({
             models: applyNativeVisibility(
               entries,

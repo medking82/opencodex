@@ -1,4 +1,5 @@
 import type { TranslatorBudget } from "../../lib/translator-budget";
+import { isNonReplayableResponse, markResponseNonReplayable, carryReplayRefusal } from "../../lib/upstream-retry";
 import {
   isNativePassthroughSseResponse,
   markNativePassthroughSseResponse,
@@ -80,7 +81,8 @@ export function finalizeOwnedTranslatorBudget(response: Response, budget: Transl
     markEagerRelaySseResponse(finalizedResponse);
   }
   if (isPreinspectedJsonResponse(response)) markPreinspectedJsonResponse(finalizedResponse);
-  return finalizedResponse;
+  if (isNonReplayableResponse(response)) markResponseNonReplayable(finalizedResponse);
+  return carryReplayRefusal(response, finalizedResponse);
 }
 
 /** Release a serving-account slot when the client body ends, errors or is cancelled. */
@@ -103,7 +105,8 @@ export function finalizeAccountLease(response: Response, release: () => void): R
   if (isNativePassthroughSseResponse(response)) markNativePassthroughSseResponse(wrapped);
   if (isEagerRelaySseResponse(response)) markEagerRelaySseResponse(wrapped);
   if (isPreinspectedJsonResponse(response)) markPreinspectedJsonResponse(wrapped);
-  return wrapped;
+  if (isNonReplayableResponse(response)) markResponseNonReplayable(wrapped);
+  return carryReplayRefusal(response, wrapped);
 }
 
 

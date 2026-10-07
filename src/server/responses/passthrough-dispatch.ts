@@ -589,7 +589,7 @@ export async function preparePassthroughExchange(
       }
       // The snapshot callback opts the inspector into output reconstruction. Compaction
       // has no continuation cache, so use the parsed terminal here without adding retention.
-      if (responseEffects.plaintextV2AgentMessageToolNames.size === 0 && !rememberPassthroughResponse && payload && typeof payload === "object"
+      if (!isSingleAgentModel(config, route) && responseEffects.plaintextV2AgentMessageToolNames.size === 0 && !rememberPassthroughResponse && payload && typeof payload === "object"
         && "type" in payload && payload.type === "response.completed"
         && "response" in payload && payload.response && typeof payload.response === "object"
         && !Array.isArray(payload.response)) {
@@ -1888,3 +1888,4 @@ export async function preparePassthroughExchange(
 }
 
 export type PassthroughExchange = Exclude<Awaited<ReturnType<typeof preparePassthroughExchange>>, Response>;
+import { isSingleAgentModel } from "../../codex/model-capability-policy";

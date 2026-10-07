@@ -24,6 +24,10 @@ import { clientEncoderForDelivery, deliverClientEncodedResponse } from "../infer
 import { noteKiroServedSuccess } from "../../providers/kiro-usage";
 import { persistKiroAccountState } from "../../providers/kiro-account-state-disk";
 import { isCanonicalOpenAiForwardProvider } from "../../providers/openai-tiers";
+import { isSingleAgentModel } from "../../codex/model-capability-policy";
+import { createSingleAgentToolGuardBlockRewrite, singleAgentResponseViolation, singleAgentErrorResponse } from "../responses-single-agent-guard";
+import { relaySseWithBlockRewrite } from "../sse-payload-rewrite";
+import { markResponseNonReplayable } from "../../lib/upstream-retry";
 
 /** One responsibility of the Responses request pipeline; state owners are explicit. */
 export async function deliverAdapterResponse(
@@ -73,6 +77,7 @@ export async function deliverAdapterResponse(
     notifyResponseComplete,
   } = responseEffects;
   const { routedCompaction } = sidecarState;
+  const singleAgent = isSingleAgentModel(config, route);
   const bodyInactivityMs = resolveStallTimeoutMs(config.stallTimeoutSec, { localUpstream });
   const upstreamRequestsStream = parsed.stream || isCanonicalOpenAiForwardProvider(route.provider);
 
@@ -126,7 +131,7 @@ export async function deliverAdapterResponse(
     const { toolNsMap, declaredToolNames, toolParameterSchemas, freeformToolNames, bareCustomToolNames, toolSearchToolNames } = toolBridgeMaps;
     // One completion owner for both deliveries: the bridge calls it from its terminal, the
     // direct client encoder from the fold of the same events.
-    const onCompletedResponse = (response: Record<string, unknown>, providerState?: OcxProviderContinuationState) => {
+    const publishCompletedResponse = (response: Record<string, unknown>, providerState?: OcxProviderContinuationState) => {
       const served = transportState.sentOAuthSnapshot;
       if (transportState.activeAdapter.name === "kiro" && response.status === "completed" && served
         && noteKiroServedSuccess(served.accountId, served.generation)) persistKiroAccountState();
@@ -145,6 +150,12 @@ export async function deliverAdapterResponse(
       }
       notifyResponseComplete(response);
     };
+    // The bridge snapshot precedes the client sequence guard. Retain continuation metadata
+    // only; publish/cache the validated wire snapshot after all held identities agree.
+    let completedProviderState: OcxProviderContinuationState | undefined;
+    const onCompletedResponse = singleAgent
+      ? (_response: Record<string, unknown>, providerState?: OcxProviderContinuationState) => { completedProviderState = providerState; }
+      : publishCompletedResponse;
     const clientEncoder = clientEncoderForDelivery(options, logCtx, !!routedCompaction, transportState.activeAdapter.name);
     if (clientEncoder) {
       return deliverClientEncodedResponse({
@@ -197,10 +208,18 @@ export async function deliverAdapterResponse(
       },
     );
     const bridgeTurnAc = new AbortController();
-    const trackedSse = trackStreamLifetime(sseStream, bridgeTurnAc, cleanupUpstreamAbort, options.turnAdmissionLease);
-    return new Response(trackedSse, {
+    const deliveredSse = singleAgent
+      ? relaySseWithBlockRewrite(sseStream, createSingleAgentToolGuardBlockRewrite({
+          onCompletedResponse: response => publishCompletedResponse(response, completedProviderState),
+          onFailure: cancelResponseCompletion,
+        }), translatorBudget)
+      : sseStream;
+    const trackedSse = trackStreamLifetime(deliveredSse, bridgeTurnAc, cleanupUpstreamAbort, options.turnAdmissionLease);
+    const delivered = new Response(trackedSse, {
       headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no" },
     });
+    if (singleAgent) markResponseNonReplayable(delivered);
+    return delivered;
   }
 
   if (transportState.activeAdapter.parseResponse
@@ -278,6 +297,10 @@ export async function deliverAdapterResponse(
       },
     });
     // See the streaming branch: compaction turns skip the continuation cache.
+    if (isSingleAgentModel(config, route)) {
+      const violation = singleAgentResponseViolation(json);
+      if (violation) return singleAgentErrorResponse(violation);
+    }
     if (!routedCompaction) {
       rememberKiroDeliveredFinalAnswer(transportState.activeAdapter.name, json);
       rememberResponseState(

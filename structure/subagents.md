@@ -62,6 +62,49 @@ resolver enforces source identity and expiry before those credentials reach rout
 
 ## Multi-agent surface mode (3-state)
 
+### Per-model single-agent policy
+
+`singleAgentModels` is an opt-in list of resolved `provider/model` destinations. The final live
+and persisted catalog projection marks matching routed rows `multi_agent_version: "disabled"`
+and `supports_parallel_tool_calls: false`, after the global surface pass. An owned origin stamp
+restores matching values when the policy is removed; unrelated rows and later edits are retained.
+
+Responses preparation refuses a marked child turn before inference, fallback selection or task
+recovery. Main turns remove native collaboration declarations from current, deferred and discovered
+catalogs, preserve executed-call history, set `parallel_tool_calls: false`, and receive a short
+capability instruction. Forced delegation fails rather than selecting another tool or model.
+The delivery guard is independent of these advisory surfaces: see
+[Responses delivery](#single-agent-client-tool-delivery).
+
+Only Responses ingress and adapters whose client calls reach the Responses delivery owners are
+supported. Other ingress and adapter-owned agent loops fail with `single_agent_unsupported_transport`.
+The policy controls Codex collaboration and emitted tool batches; it does not isolate arbitrary
+programs started by shell tools, change native permissions, or prove that a child process was never
+created by a separate native parent. Automatic permission review remains a separate configured role.
+
+The config schema accepts at most 256 nonempty, whitespace-free selectors. Unset preserves existing
+behavior. Guidance, worker defaults, permissions and auto-review overrides remain separate settings.
+
+### Single-agent client tool delivery
+
+JSON delivery validates final restored output before continuation publication. SSE withholds client-call
+lifecycle and argument frames until a completed snapshot proves there is exactly one ordinary call.
+A second identity, native delegation, invalid identity, inconsistent snapshot or incomplete batch
+fails before held calls reach the client. Text streams normally. Only bounded identity metadata is
+retained; existing SSE framing and translator budgets own bytes and cancellation. Teardown never
+flushes held calls.
+
+Native passthrough runs the gate after identity restoration and declared-tool authorization, before
+the client and plaintext continuation observer. Translated Responses and routed compaction use the
+same gate after bridging, publishing completion/cache only from a sequence-validated snapshot. Raw
+inspection never publishes success for these streams. Unconfigured
+destinations retain their protocol. The terminal snapshot does not attest what an executable does
+internally. Local refusals carry structured `single_agent_*` codes and prohibit replay/rerouting;
+existing undeclared-tool failures keep their error contract when they reject the call first.
+Opt-in guarded streams retain non-replayability through combo preflight, translator-budget and
+account-lease wrappers. This is batch admission, not a task executor: structured background-tool
+running/wait/query/cancel state belongs to the native client and is not inferred from output text.
+
 `OcxConfig.multiAgentMode` controls the `multi_agent_version` field stamped on catalog entries:
 
 | Mode | Behavior |

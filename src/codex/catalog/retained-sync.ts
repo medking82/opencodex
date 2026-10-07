@@ -1,4 +1,5 @@
 import { projectAntigravitySelectedModels } from "../../providers/antigravity-effort-families";
+import { applySingleAgentCatalogPolicy } from "../model-capability-policy";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { initializeConfigOwnership } from "../../lib/config-ownership";
@@ -544,6 +545,7 @@ function writeRetainedCatalogSync({
   applyNativeAccessPrograms(catalog.models, modelEntitlements, accountTargets);
   clampCatalogModelsToCodexSupport(catalog.models);
   finalizeAutoReviewModelOverride(catalog.models, catalogModelsForMerge, config);
+  applySingleAgentCatalogPolicy(catalog.models, config);
   // Last mutation before serialization; see `enforceCatalogSlugUniqueness` for why the ordering
   // against the effort clamp is load-bearing rather than cosmetic.
   catalog.models = enforceCatalogSlugUniqueness(catalog.models, true);

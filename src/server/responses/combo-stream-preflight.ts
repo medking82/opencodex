@@ -6,6 +6,12 @@ import type { RequestFailureStage } from "../../lib/request-failure-model";
 import type { RequestLogContext } from "../request-log";
 import { createSseInspector } from "../relay";
 import { MAX_CLIENT_SSE_FRAME_BYTES } from "../sse-frame-buffer";
+import { carryReplayRefusal, isNonReplayableResponse, markResponseNonReplayable } from "../../lib/upstream-retry";
+
+function retainReplayPolicy(source: Response, delivered: Response): Response {
+  if (isNonReplayableResponse(source)) markResponseNonReplayable(delivered);
+  return carryReplayRefusal(source, delivered);
+}
 
 const COMBO_STREAM_PREFLIGHT_MAX_BYTES = MAX_CLIENT_SSE_FRAME_BYTES;
 // Keep retained object count proportional to the same byte budget used by the
@@ -198,11 +204,11 @@ function replayBufferedResponse(
       reader.cancel(reason).catch(() => undefined);
     },
   });
-  return new Response(body, {
+  return retainReplayPolicy(response, new Response(body, {
     status: response.status,
     statusText: response.statusText,
     headers: response.headers,
-  });
+  }));
 }
 
 function failedTerminalResponse(
@@ -232,7 +238,7 @@ function failedTerminalResponse(
   headers.delete("content-length");
   headers.delete("content-encoding");
   const usage = terminalResponse.usage;
-  return new Response(JSON.stringify({
+  return retainReplayPolicy(response, new Response(JSON.stringify({
     error,
     // The combo classifier needs only the error and optional usage. Do not carry
     // response ids, provider metadata, or future terminal fields into the client
@@ -244,7 +250,7 @@ function failedTerminalResponse(
   }), {
     status: logCtx.terminalHttpStatus ?? bareErrorStatus(terminalPayload) ?? 502,
     headers,
-  });
+  }));
 }
 
 export type ComboStreamPreflightResult =
@@ -459,9 +465,9 @@ export function deferProtocolSafeResetRecovery(
     },
   }, { highWaterMark: 0 });
 
-  return new Response(body, {
+  return retainReplayPolicy(response, new Response(body, {
     status: response.status,
     statusText: response.statusText,
     headers: response.headers,
-  });
+  }));
 }

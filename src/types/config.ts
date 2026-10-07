@@ -825,6 +825,8 @@ export interface OcxConfig {
    * Unset or omitted by default.
    */
   blockedModelRedirects?: Record<string, string>;
+  /** Exact provider/model destinations that cannot delegate or run as workers. Unset preserves existing behavior. */
+  singleAgentModels?: string[];
   /**
    * 3-state multi-agent surface override:
    * - "v1": force ALL models to v1 surface (override upstream pins)
