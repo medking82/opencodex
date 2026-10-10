@@ -42,7 +42,7 @@ export function adapterNeedsForcedContinuation(name: string): boolean {
 
 /** Adapters opting into restricted store:false replay for pending client function calls. */
 export function adapterNeedsToolCallContinuation(name: string): boolean {
-  return name === "qoder";
+  return name === "qoder" || name === "claude-cli";
 }
 
 

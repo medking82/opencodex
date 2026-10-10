@@ -110,7 +110,7 @@ describe("Responses unforced store:false ephemeral function call state", () => {
   });
 
   for (const stream of [false, true]) {
-    for (const [name, toolTurn] of [["qoder", true], ["qoder", "custom"], ["qoder", false], ["codebuddy", true], ["codebuddy", "custom"]] as const) {
+    for (const [name, toolTurn] of [["claude-cli", true], ["claude-cli", "custom"], ["claude-cli", false], ["qoder", true], ["qoder", "custom"], ["qoder", false], ["codebuddy", true], ["codebuddy", "custom"]] as const) {
       test(`execution records only opted-in tool turns (${name}, tools=${toolTurn}, stream=${stream})`, async () => {
         const resolver = { ...await import("../../src/server/adapter-resolve") };
         const release = acquireOwnedSpendHome();
@@ -153,12 +153,12 @@ describe("Responses unforced store:false ephemeral function call state", () => {
             : JSON.parse(text);
           expect(result?.status).toBe("completed");
           if (toolTurn) expect(result.output).toContainEqual(expect.objectContaining({ type: custom ? "custom_tool_call" : "function_call" }));
-          expect(responseStateMetrics().count).toBe(name === "qoder" && toolTurn ? 1 : 0);
+          expect(responseStateMetrics().count).toBe((name === "qoder" || name === "claude-cli") && toolTurn ? 1 : 0);
           const next = { model: "fixture-model", previous_response_id: result.id, input: [
             { type: custom ? "custom_tool_call_output" : "function_call_output", call_id: "qoder_native_execution", output: "OK" },
           ], store: false };
           const expanded = expandPreviousResponseInput(next, "qoder-task");
-          if (name === "qoder" && toolTurn) {
+          if ((name === "qoder" || name === "claude-cli") && toolTurn) {
             expect(parseRequest(expanded).context.messages.at(-1)).toMatchObject({
               role: "toolResult", toolCallId: "qoder_native_execution", toolName, content: "OK",
             });
@@ -171,7 +171,9 @@ describe("Responses unforced store:false ephemeral function call state", () => {
     }
   }
 
-  test("only Qoder opts into tool-call retention; forced eligibility is unchanged", () => {
+  test("Claude CLI and Qoder opt into tool-call retention; forced eligibility is unchanged", () => {
+    expect(adapterNeedsToolCallContinuation("claude-cli")).toBe(true);
+    expect(adapterNeedsForcedContinuation("claude-cli")).toBe(false);
     expect(adapterNeedsToolCallContinuation("qoder")).toBe(true);
     expect(adapterNeedsForcedContinuation("qoder")).toBe(false);
     for (const name of ["codebuddy", "coding-agent", "gemini", "volcengine", "openai", ""]) {

@@ -40,6 +40,10 @@ Some adapters share another adapter's routed-tool semantics while retaining inde
   `--setting-sources ""`, `--no-session-persistence`, no permission bypass, a folded prompt staged
   in a 0600 per-turn file and passed as `--system-prompt-file` rather than as a world-readable
   argument, and a child environment that carries no inherited `ANTHROPIC_*` value.
+  Client tools use the shared `src/adapters/coding-agent/tool-catalog.ts` and capture-only MCP
+  server, with exact allowlisted names and validated init. Claude's partial/complete snapshots
+  share deduplication and namespace replay; `message_stop` ends and reaps a captured batch.
+  `tests/providers/claude-cli-tools.test.ts` pins isolation, structured output, replay and cleanup.
   Its registry row is `authKind: "key"` with `keyOptional: true`, NOT `local`: the turn leaves the
   machine for `api.anthropic.com`, and `local` (Ollama, vLLM, LM Studio) is the classification for
   traffic that never does. `keyOptional` is the existing exemption from key enforcement, and key

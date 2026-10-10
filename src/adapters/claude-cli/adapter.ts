@@ -1,15 +1,27 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { AdapterEvent, OcxParsedRequest, OcxProviderConfig } from "../../types";
 import type { AdapterRequest, ProviderAdapter } from "../base";
 import { mapReasoningEffort } from "../../reasoning-effort";
-import { buildSystemPrompt } from "../coding-agent/protocol";
-import { baseScopedEnv, runCodingAgentTurn, type CodingAgentDeps } from "../coding-agent/turn";
+import { buildSystemPrompt, MAX_TOOL_BLOCK_STARTS } from "../coding-agent/protocol";
+import { buildCodingAgentToolCatalog, CodingAgentToolCatalogError } from "../coding-agent/tool-catalog";
+import { baseScopedEnv, runCodingAgentTurn, type CodingAgentDeps, type CodingAgentToolBridgeInput } from "../coding-agent/turn";
 import { CLAUDE_CLI_PROFILES, type ClaudeCliProfile } from "./profiles";
 
 export type { SpawnFn } from "../coding-agent/turn";
 export type ClaudeCliAdapterDeps = CodingAgentDeps;
+
+const MCP_SERVER_NAME = "opencodex";
+const MCP_SERVER_PATH = fileURLToPath(new URL("../coding-agent/mcp-server.ts", import.meta.url));
+const TOOL_BRIDGE_PROMPT = [
+  "Your built-in tools and user-configured MCP servers are disabled.",
+  "Use only the isolated opencodex MCP catalog when tools are needed.",
+  "This catalog captures call intent only. The external client owns approval, sandboxing and execution.",
+  "Never represent tool calls or tool results as XML or plain text instead of calling the advertised tool.",
+  "Historical tool results are supplied by the external client; use them without re-executing historical calls.",
+].join("\n");
 
 /**
  * Quiet the CLI's own outbound traffic.
@@ -58,7 +70,7 @@ export function buildChildEnv(_profile: ClaudeCliProfile, _apiKey: string): Reco
  * Build the headless Claude Code arguments for one turn.
  *
  * Tool ownership stays with the client: `--tools ""` disables every built-in tool and
- * `--strict-mcp-config` (with no `--mcp-config`) keeps user, project and plugin MCP servers out, so
+ * `--strict-mcp-config` keeps user, project and plugin MCP servers out; only the per-request capture-only catalog is added, so
  * the harness can neither read, write, exec nor browse the operator's tree. `--setting-sources ""`
  * stops the CLI from loading CLAUDE.md, skills, hooks, plugins and output styles into a proxied
  * turn, which is what makes the request deterministic instead of dependent on the host's setup.
@@ -80,7 +92,7 @@ export function buildChildEnv(_profile: ClaudeCliProfile, _apiKey: string): Reco
  * and `buildConversationInput` projects it into the single stream-json user frame the CLI accepts.
  *
  * There is deliberately no `--max-turns` here: the Claude Code CLI exposes no such flag (the Agent
- * SDK sets it on the turn budget instead), and with no tool channel a single `-p` turn cannot loop.
+ * SDK sets it on the turn budget instead). The capture-only bridge ends and reaps the child on the tool-turn stop.
  */
 export function buildArgs(
   _profile: ClaudeCliProfile,
@@ -148,7 +160,7 @@ export function withClaudeLoginHint(emit: (event: AdapterEvent) => void): (event
 }
 
 /**
- * Create the Claude Code CLI adapter: one headless, tools-disabled, sessionless turn per request.
+ * Create the Claude Code CLI adapter: one headless, built-in-tools-disabled, sessionless turn per request.
  *
  * As with CodeBuddy and Qoder, `runTurn` owns the turn and the HTTP path is disabled — the CLI
  * performs the transport, and OpenCodex contributes the request projection, the stream mapping and
@@ -177,6 +189,31 @@ export function createClaudeCliAdapter(provider: OcxProviderConfig, deps: Claude
         });
         return;
       }
+      let catalog: ReturnType<typeof buildCodingAgentToolCatalog>;
+      try {
+        catalog = buildCodingAgentToolCatalog(parsed, MCP_SERVER_NAME);
+      } catch (error) {
+        if (!(error instanceof CodingAgentToolCatalogError)) throw error;
+        emit({ type: "error", message: "Invalid Claude Code tool catalog.", status: 400,
+          errorType: "invalid_request_error", code: "tool_catalog_invalid", retryable: false });
+        return;
+      }
+      const toolBridge: CodingAgentToolBridgeInput | undefined = catalog.tools.length > 0 || catalog.requireToolCall
+        ? {
+            serverName: MCP_SERVER_NAME,
+            serverModulePath: MCP_SERVER_PATH,
+            tools: catalog.tools,
+            emittedNameMap: catalog.emittedNameMap,
+            maxTurnToolCalls: MAX_TOOL_BLOCK_STARTS,
+            projectHistoryToolNames: true,
+            completeAssistantToolUse: true,
+            // Existing compiled entrypoint dispatches the generic coding-agent MCP server.
+            standaloneEntrypoint: "__qoder-mcp",
+            requireToolCall: catalog.requireToolCall,
+          }
+        : undefined;
+      const system = buildSystemPrompt(parsed) ?? "";
+      const stagedPrompt = toolBridge ? [system, TOOL_BRIDGE_PROMPT].filter(Boolean).join("\n\n") : system;
       // argv is world-readable via process listing, so the folded system+developer prompt is staged
       // in a private per-turn file and passed by path. The file is written even when the caller
       // sends no prompt at all: the flag has to be present either way, and an empty replacement is
@@ -186,7 +223,7 @@ export function createClaudeCliAdapter(provider: OcxProviderConfig, deps: Claude
       try {
         promptDir = await mkdtemp(join(tmpdir(), "ocx-claude-cli-prompt-"));
         promptFile = join(promptDir, "system-prompt.txt");
-        await writeFile(promptFile, buildSystemPrompt(parsed) ?? "", { encoding: "utf8", mode: 0o600, flag: "wx" });
+        await writeFile(promptFile, stagedPrompt, { encoding: "utf8", mode: 0o600, flag: "wx" });
       } catch {
         if (promptDir) await rm(promptDir, { recursive: true, force: true }).catch(() => {});
         emit({
@@ -209,6 +246,7 @@ export function createClaudeCliAdapter(provider: OcxProviderConfig, deps: Claude
           buildArgs: (profile, req, prov) => buildArgs(profile as ClaudeCliProfile, req, prov, promptFile),
           buildEnv: (profile, apiKey) => buildChildEnv(profile as ClaudeCliProfile, apiKey),
           deps,
+          ...(toolBridge ? { toolBridge } : {}),
         });
       } finally {
         if (promptDir) await rm(promptDir, { recursive: true, force: true }).catch(() => {});

@@ -19,9 +19,9 @@ The coding-agent stream parser buffers each tool-use block by its content-block 
 and emits a complete start/delta/end sequence on closure. Distinct indices can interleave.
 For capture-only bridges, the init handshake is checked before buffering or emitting tool calls.
 The shared parser admits a valid-ID tool start before allocating its block, with a 16-call
-ceiling for CodeBuddy and Qoder and any tighter bridge ceiling applied there. IDs, names,
+ceiling for CodeBuddy, Claude CLI and Qoder and any tighter bridge ceiling applied there. IDs, names,
 and argument fragments charge the request's translator budget while buffered; closing,
-replacement, and turn cleanup release reservations; Qoder shares one budgeted emitted-ID/name/input ledger across complete and partial calls until cleanup, suppressing exact repeats and rejecting conflicting reuse in either order. Its turn limit counts distinct admitted IDs separately from open/closed-block accounting; an open repeat cannot consume a slot for a new identity. Retained partial blocks independently obey the same ceiling regardless of ID, and Qoder refuses invalid/undeclared names before allocation; every retained block charges its nonempty name. A new start on an occupied
+replacement, and turn cleanup release reservations; Claude CLI and Qoder share one budgeted emitted-ID/name/input ledger across complete and partial calls until cleanup, suppressing exact repeats and rejecting conflicting reuse in either order. Its turn limit counts distinct admitted IDs separately from open/closed-block accounting; an open repeat cannot consume a slot for a new identity. Retained partial blocks independently obey the same ceiling regardless of ID, and both refuse invalid/undeclared names before allocation; every retained block charges its nonempty name. A new start on an occupied
 index closes the previous block only when its arguments form a complete JSON object;
 an unindexed delta or stop cannot be attributed to an indexed block, and a nonempty
 argument delta that cannot be attributed fails immediately. Tool-bridge completion requires every opened block to close, preserving the downstream single-open-call contract.
@@ -32,7 +32,7 @@ The capture-only bridge checks raw starts, complete tool-use frames and synthesi
 buffering; a later init cannot authorize a call that started earlier. The 8 MiB JSONL line
 ceiling is independent of the retained tool-block budget.
 
-Qoder alone opts into restricted `store:false` function/custom-tool continuation through `adapterNeedsToolCallContinuation` in `src/server/responses/core-replay.ts`. RunTurn SSE/JSON and sidecar completion pass `retainForToolContinuation` using the serving adapter; `src/responses/state.ts` admits an unforced `store:false` response only with that opt-in and an actual `function_call` or `custom_tool_call`. Text-only Qoder responses and unforced non-opted-in providers, including CodeBuddy, are not retained. Saved entries keep the existing `unforcedStoreFalse` matching-call/output-type replay gate (any matching pending result admits a partial batch; missing/invalid provider-output boundaries and client-history-only calls never admit replay, including hydrated snapshots/spills) through TTL, snapshot, spill, reload and memory-budget controls; the admission option is not persisted. Kiro/Cursor forced continuation and passthrough `force:true` remain unchanged.
+Claude CLI and Qoder opt into restricted `store:false` function/custom-tool continuation through `adapterNeedsToolCallContinuation` in `src/server/responses/core-replay.ts`. RunTurn SSE/JSON and sidecar completion pass `retainForToolContinuation` using the serving adapter; `src/responses/state.ts` admits an unforced `store:false` response only with that opt-in and an actual `function_call` or `custom_tool_call`. Text-only Claude CLI and Qoder responses and unforced non-opted-in providers, including CodeBuddy, are not retained. Saved entries keep the existing `unforcedStoreFalse` matching-call/output-type replay gate (any matching pending result admits a partial batch; missing/invalid provider-output boundaries and client-history-only calls never admit replay, including hydrated snapshots/spills) through TTL, snapshot, spill, reload and memory-budget controls; the admission option is not persisted. Kiro/Cursor forced continuation and passthrough `force:true` remain unchanged.
 
 Direct MCP names emitted in a verified custom code-mode catalog follow the
 [Responses restoration boundary](transports/responses-wire-shapes.md#direct-mcp-calls-in-code-mode).
@@ -62,11 +62,11 @@ the fixed `tool_bridge_setup_failed` error, never an OS error carrying private f
 Failure prevents CLI spawn and settles the bridge's private directory; the CodeBuddy adapter
 also settles its prompt-file directory. Catalog and MCP-config write failures cover both owners.
 In a compiled executable, the bridge launches the private `__codebuddy-mcp` CLI entrypoint;
-source execution launches the MCP module with Bun. Both paths advertise only the request's
-isolated catalog and leave tool execution to the external client. Qoder's selected catalog projection in `src/adapters/coding-agent/tool-catalog.ts` rejects empty, control-bearing, comma-bearing, or unpaired-surrogate
+Claude CLI and Qoder reuse the generic MCP server through the existing private `__qoder-mcp` entrypoint; source execution launches its module with Bun. Both paths advertise only the request's
+isolated catalog and leave tool execution to the external client. Claude CLI and Qoder use the selected catalog projection in `src/adapters/coding-agent/tool-catalog.ts` rejects empty, control-bearing, comma-bearing, or unpaired-surrogate
 name/namespace components and wire names over 512 UTF-8 bytes before staging. It admits at most 128 selected tools,
 256 KiB per serialized definition, and 2 MiB for the serialized array (including brackets and separators); the comma-joined `--allowed-tools` argument is separately capped at 8 KiB of UTF-8, counting full
-`mcp__<server>__<tool>` names and commas. Invalid catalogs return a fixed local 400 without spawning Qoder. Valid wire identities, order and schemas are unchanged, apart from the Responses-only encrypted marker stripped during
+`mcp__<server>__<tool>` names and commas. Invalid catalogs return a fixed local 400 without spawning the CLI. Valid wire identities, order and schemas are unchanged, apart from the Responses-only encrypted marker stripped during
 projection. Duplicate and ambiguous wire identities remain the Responses parser's responsibility. Qoder appends the
 folded system prompt through its documented scoped `QODER_APPEND_SYSTEM_PROMPT` or `QODERCN_APPEND_SYSTEM_PROMPT` child environment, never through command-line arguments or inherited vendor variables.
 
