@@ -1,9 +1,7 @@
-# Agent rules for installing and running opencodex
+# User consent when installing and running opencodex
 
-This file is for an agent **installing, starting, or operating** opencodex on a
-user's machine. It is not about contributing to this repository — that is
-[`AGENTS.md`](./AGENTS.md), and nothing here concerns you if you are only
-reading or changing this codebase.
+This guide describes the consent boundary for an agent **installing, starting,
+or operating** opencodex on a user's machine.
 
 There is one rule, and it exists because `ocx start` can print a question that
 an agent is capable of answering and must not.

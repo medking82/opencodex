@@ -27,8 +27,6 @@ the reasoning.
 Rebase pull requests are welcome: bringing a stale branch onto the current head
 is normal contribution. Note the source commits in the description.
 
-Agent-facing repository and review rules live in [`AGENTS.md`](./AGENTS.md).
-
 For local development commands, architecture notes, and release workflow details, use the hosted
 contributing guide above instead of duplicating instructions here.
 
@@ -76,8 +74,7 @@ The suite uses Bun 1.4.3 (`testRunnerBun`) while the shipped runtime is 1.4.2.
 Run `bun run test` before review readiness. If the full local suite is too costly
 for the task or available resources, run at least focused regression tests for
 the changed behavior. Document the reason, commands, results, and remaining
-coverage in the PR. Follow [AGENTS.md](./AGENTS.md#commands) for the complete
-validation policy; required CI must pass on the current PR head before merge.
+coverage in the PR. Required CI must pass on the current PR head before merge.
 `bun run prepush` remains an optional comprehensive local check.
 
 ```sh

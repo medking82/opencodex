@@ -298,8 +298,8 @@ export async function handleCodexPromptRoutes(ctx: ManagementContext): Promise<R
   // this proxy at all. So this is not a technical barrier against a determined local
   // agent. What it removes is the CASUAL path — an agent that would have PUT here
   // because the endpoint existed and the token was lying in `~/.opencodex` — and it
-  // makes the refusal legible instead of silent. The real boundary is normative and
-  // lives in AGENTS.md.
+  // makes the refusal legible instead of silent. Explicit user consent remains
+  // necessary whichever mechanism is used to change their prompt configuration.
   //
   // Reads stay open to the admin token: describing the prompt stack changes nothing,
   // and the dashboard's own cold load needs it.

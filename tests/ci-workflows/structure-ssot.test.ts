@@ -43,10 +43,9 @@ function scaffold(): string {
   scratch.push(root);
   write(root, "src/alpha/keep.ts", "export const keep = 1;\n");
   write(root, "tests/alpha/alpha.test.ts", "// Holds INV-A-01\nexport {};\n");
-  // The generated index names the sibling documentation roots and links the rules file, so a
+  // The generated index names the sibling documentation roots, so a
   // scaffold without them fails on the index rather than on the rule under test.
   for (const root_dir of ["docs", "docs-site", "devlog"]) write(root, root_dir + "/.gitkeep", "");
-  write(root, "structure/AGENTS.md", "# Rules\n");
   const manifest: Manifest = {
     version: 2,
     sizeBudgetLines: 600,

@@ -12,14 +12,13 @@ import {
 /**
  * Quota-reset detection is an optional subsystem, so it must stay off the core path.
  *
- * AGENTS.md states that obligation for optional subsystems generally, but
- * tests/core-lab-boundary.test.ts hardcodes "/src/lab/" -- so nothing enforced it for
+ * tests/lab/core-lab-boundary.test.ts hardcodes "/src/lab/" -- so nothing enforced it for
  * src/quota/. The gap is not theoretical here. Both quota seams
  * (src/codex/quota.ts, src/providers/quota.ts) are statically reachable from
  * src/server/responses/core.ts, so one static import in either puts the detector, its
  * claim store, and -- through src/quota/reset-notify-config.ts, which pulls the ../config
  * barrel -- a large module graph onto the request path of a user who never enabled
- * notifications. The Lab regression AGENTS.md documents reached ~69 modules through a
+ * notifications. The original Lab regression reached ~69 modules through a
  * six-hop chain where no single file looked wrong, and it was caught only after shipping.
  *
  * The walker lives in tests/helpers/import-graph.ts and is SHARED with the Lab guard

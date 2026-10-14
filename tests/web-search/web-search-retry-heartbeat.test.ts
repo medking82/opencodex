@@ -11,8 +11,8 @@ import { phaseTimer } from "../helpers/phase-timing";
  * Moved out of `web-search.test.ts` for issue #4997, unchanged.
  *
  * That file sits at exactly its recorded cap in `tests/fixtures/file-size-baseline.json`, and caps
- * only move downward, so instrumenting this case in place was not available: a sibling file is the
- * remedy AGENTS.md names for precisely this situation. Nothing about the case itself changed here.
+ * only move downward, so instrumenting this case in place was not available. A sibling file keeps
+ * the existing size budget intact. Nothing about the case itself changed here.
  *
  * The case overran its own 5s bound at 6233ms in the first completed unsharded `macos control`
  * run while passing in every sharded lane. Its intrinsic wait is a 1.5s backoff, so roughly 4.7s

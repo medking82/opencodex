@@ -42,7 +42,7 @@ export interface VerifyReport {
  */
 export const SWEEP_ROOTS = [
   "tests", "scripts", ".github", "src", "gui/src", "gui/tests", "bin", "docs", "docs-site", "structure", "skills",
-  "AGENTS.md", "AGENTS_INSTALL.md", "MAINTAINERS.md", "CONTRIBUTING.md", "README.md", "CREDITS.md",
+  "AGENTS_INSTALL.md", "MAINTAINERS.md", "CONTRIBUTING.md", "README.md", "CREDITS.md",
   "bunfig.toml", "package.json", ".gitignore", ".npmignore",
 ];
 // dist/ is a build output (gitignored) and is rebuilt from src; it is deliberately not swept.

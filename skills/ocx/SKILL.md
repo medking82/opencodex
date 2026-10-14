@@ -11,7 +11,7 @@ integration controls and diagnostics have different transports and limits. A sha
 API prefix does not prove that every dashboard action has a CLI equivalent.
 
 This skill is for **operating** a proxy. `AGENTS_INSTALL.md` covers installation
-and operating consent; the repository `AGENTS.md` covers code changes.
+and operating consent; `CONTRIBUTING.md` covers code changes.
 
 ## Find the task offline
 

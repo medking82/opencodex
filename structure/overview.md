@@ -246,8 +246,7 @@ guards. The workflow contract and process bounds live in
 
 `structure/manifest.json` declares both source-review coverage and cross-cutting contract authority.
 `scripts/structure-ssot.ts` validates that topology, and generated `structure/INDEX.md` publishes it.
-The [structure rules](AGENTS.md#the-source-to-doc-map) define when review requires a content edit;
-contract authority never reduces the source map's many-to-many review fan-out.
+Contract authority never reduces the source map's many-to-many coverage.
 
 Two invariants are stated here without a binding, and `grace.unboundInvariants` in
 [`manifest.json`](manifest.json) carries the reason for each. They are true statements about the system;

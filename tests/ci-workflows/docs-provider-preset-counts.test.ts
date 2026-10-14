@@ -7,8 +7,8 @@
  * zh-TW — and every quickstart including the English one — still said 94 (78 key-based). Nothing
  * failed, because both numbers read as plausible and no check compared them to the registry.
  *
- * AGENTS.md calls this class out directly: prefer deriving a count from the thing it describes
- * over restating it. The counts here are derived from PROVIDER_REGISTRY, so the next preset that
+ * Derive a count from the thing it describes instead of restating it.
+ * The counts here are derived from PROVIDER_REGISTRY, so the next preset that
  * lands fails this test in every locale at once instead of drifting.
  *
  * Each page is anchored by a locale-specific fragment rather than a number, so a reworded

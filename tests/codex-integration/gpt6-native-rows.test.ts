@@ -2,7 +2,7 @@
  * GPT-6 Sol, Luna and Astra Minor native rows.
  *
  * Held in its own file because tests/codex-integration/codex-catalog.test.ts sits at its
- * file-size ratchet cap (see AGENTS.md, "The file-size ratchet has almost no headroom").
+ * file-size ratchet cap recorded in tests/fixtures/file-size-baseline.json.
  *
  * Evidence: the authenticated roster probe of 2026-09-23
  * (`chatgpt.com/backend-api/codex/models?client_version=0.155.0`, main account), pinned verbatim

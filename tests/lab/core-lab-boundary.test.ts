@@ -126,8 +126,7 @@ export function namesLabDirectly(source: string): boolean {
 /**
  * Guard 3: the activation window inside `startServer` must stay synchronous.
  *
- * `AGENTS.md` states this guarantee as if it were enforced, and
- * `devlog/_fin/260814_lab_core_decoupling/080_activation_is_synchronous.md:143` recorded it
+ * `devlog/_fin/260814_lab_core_decoupling/080_activation_is_synchronous.md:143` recorded this
  * as a Phase-4 test — but no such scan was ever written, so the invariant was held by
  * nothing except the current code being correct.
  *
@@ -149,7 +148,7 @@ const ACTIVATION_ANCHOR = "if (labActivationRequired(config, labConfigDir)) {";
  *
  * Stopping at the activation anchor left two blind spots: an `await` inside the
  * `if (labActivationRequired(...))` body, and one between activation and `return server`.
- * AGENTS.md and `080_activation_is_synchronous.md` both state the guarantee as covering
+ * `080_activation_is_synchronous.md` states the guarantee as covering
  * everything from `Bun.serve` to the return, so a guard that stopped earlier was narrower
  * than the invariant it claimed to hold. Found by an independent review of this guard.
  */

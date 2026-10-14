@@ -365,7 +365,7 @@ describe("dev version bump rule", () => {
     // package.json is package metadata, so a partial write corrupts a checkout and this
     // script is also the documented manual recovery path - it runs on developer machines
     // where an interrupt or a full disk mid-write would strand an unusable file.
-    // scripts/AGENTS.md requires atomic replacement for exactly this class of file.
+    // Package metadata must be replaced atomically to avoid partial writes.
     const path = tempPackageJson("2.36.0");
     const dir = dirname(path);
     const proc = runCli("2.36.0", path);
