@@ -51,7 +51,7 @@ when a maintainer steps down.
   it can check itself: the branch must be on the latest `dev` commit or at
   most 10 commits behind it, and Codex/CodeRabbit findings must be resolved.
   The local-validation box follows the full-suite default and documented resource
-  exception in [AGENTS.md](./AGENTS.md#commands); focused regression tests remain
+  exception in [CONTRIBUTING.md](./CONTRIBUTING.md#local-validation-and-hooks); focused regression tests remain
   mandatory under that exception. It is an author attestation only — fork
   contributors cannot start repository CI; a maintainer has to — so the gate
   never disproves it;

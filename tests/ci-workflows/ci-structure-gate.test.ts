@@ -10,8 +10,8 @@ import { repoPath } from "../helpers/repo-root";
  * `structure/**`. On #4999, a pure doc split, every expensive leg reported
  * `skipped` and the aggregate `ci` check reported success over nothing (#5001).
  *
- * It hid for so long because `structure/AGENTS.md` makes a `structure/` edit
- * almost always arrive beside a `src/` one, which the `ci` filter does match.
+ * It hid for so long because `structure/` edits usually arrived beside
+ * `src/` changes, which the `ci` filter does match.
  * Only a pure doc change exposes it, and it took a doc reaching its size budget
  * to produce one.
  */

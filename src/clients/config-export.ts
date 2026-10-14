@@ -10,7 +10,7 @@
  *
  * - **No secret is ever serialized.** Configs carry only the client's documented env
  *   reference (`{env:VAR}` for OpenCode, `$VAR` for Pi); the real admission key travels
- *   through the environment. AGENTS.md treats token serialization as a release blocker.
+ *   through the environment. Never serialize the token into exported configuration.
  * - **No metadata is guessed.** A model with no authoritative context window ships
  *   without context/output fields, and the client applies its own defaults. Pi's `cost`
  *   is omitted entirely rather than zero-filled, because zeros would assert "free",

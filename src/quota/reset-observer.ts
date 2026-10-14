@@ -4,7 +4,7 @@
  * Kept behind a lazy import from both quota subsystems: src/codex/quota.ts and
  * src/providers/quota.ts are both statically reachable from
  * src/server/responses/core.ts, so a static edge here would load this module, its config
- * resolution, and its sink registry into every install — the failure AGENTS.md documents for
+ * resolution, and its sink registry into every install — the earlier failure in
  * Compatibility Lab, where a six-hop chain pulled ~69 modules onto the core path.
  *
  * Never throws. A detection or delivery failure must not break the quota write that

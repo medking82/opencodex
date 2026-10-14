@@ -4,7 +4,7 @@ import { join } from "node:path";
 /**
  * Whether the served dashboard bundle predates the sources it was built from.
  *
- * The dashboard is a build artifact: `AGENTS.md` records that `gui/` is served from `gui/dist`,
+ * The dashboard is a build artifact: `gui/` is served from `gui/dist`,
  * so a checkout that moves forward without `bun run build:gui` keeps serving the previous bundle.
  * Nothing fails when that happens. The proxy answers, the page loads, and every feature added since
  * the last build is simply absent — which reads as the feature being broken rather than unbuilt.

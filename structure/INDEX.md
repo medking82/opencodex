@@ -4,8 +4,7 @@ This folder is the maintainer source of truth for the current system shape. Publ
 belong in `docs-site/`. Development work is recorded in `devlog/` units — `_plan/` while open,
 `_fin/` once closed.
 
-Generated from `structure/manifest.json` by `bun run structure:index`. Do not edit by hand; `bun run structure:check` fails when this file and the manifest disagree. The rules for changing anything
-in this folder are in [`AGENTS.md`](AGENTS.md).
+Generated from `structure/manifest.json` by `bun run structure:index`. Do not edit by hand; `bun run structure:check` fails when this file and the manifest disagree.
 
 ## Reading order
 

@@ -4,7 +4,7 @@
 #  * Full cross-platform (macOS/Windows) CI runs ONLY via manual
 #    workflow_dispatch and on push to main/preview (release lines).
 #  * NEVER add a dev push trigger or pull_request runs for macOS/Windows jobs.
-#  PRs that change this policy will be closed. See AGENTS.md "CI policy".
+#  PRs that change this policy will be closed. See CONTRIBUTING.md "CI policy".
 # ============================================================================
 name: Cross-platform CI
 
@@ -15,8 +15,8 @@ on:
   pull_request: {}
     # No base-branch filter on purpose. GitHub matches `branches:` against the
     # BASE ref, so `[main, dev]` silently excluded stacked child PRs — whose
-    # base is another open PR's head branch, an intentional review workflow per
-    # AGENTS.md that `enforce-target` already exempts from the wrong-base gate.
+    # base is another open PR's head branch, a stacked review workflow that
+    # `enforce-target` already exempts from the wrong-base gate.
     # The #951-#955 stack merged with `enforce-target`, `label`, and
     # `react-doctor` as its only check-runs: no test job ever queued for 24
     # changed files under `src/`.
@@ -359,8 +359,8 @@ jobs:
             # the only place CI runs `bun run structure:check`. The aggregate
             # then reported success over nothing. #4999, a pure doc split, is the
             # live example; it stayed invisible for so long because
-            # `structure/AGENTS.md` makes a `structure/` edit almost always
-            # arrive beside a `src/` one, which the `ci` filter does match.
+            # `structure/` edits usually arrived beside `src/` changes,
+            # which the `ci` filter does match.
             #
             # The job this feeds runs the gate alone rather than widening `ci`,
             # so a prose edit still does not start the cross-platform matrix.

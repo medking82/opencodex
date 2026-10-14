@@ -176,7 +176,7 @@ if (import.meta.main) {
     // each file's version line, because a full JSON or TOML round-trip would reformat the file
     // and turn a one-line bump into an unreviewable diff. It computes every rewrite before
     // writing, so a missing or unrecognisable desktop source fails with nothing changed, and
-    // it replaces each file atomically, per scripts/AGENTS.md: package metadata is exactly the
+    // it replaces each file atomically: package metadata is exactly the
     // class of file whose partial write corrupts a checkout. This script is also the
     // documented manual recovery path, so it can run on a developer machine where an interrupt
     // or a full disk mid-write would otherwise leave a truncated package.json.

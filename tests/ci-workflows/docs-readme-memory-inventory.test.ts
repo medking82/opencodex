@@ -9,7 +9,7 @@
  * time. Review does not catch this: an English diff of one number looks complete on its own,
  * and the seven translations were copied from a source that was already stale.
  *
- * AGENTS.md calls this class out directly: derive a count from the thing it describes rather
+ * Derive a count from the thing it describes rather
  * than restating it. The three numbers below are derived from the rosters the runtime actually
  * registers, so the next store that lands fails this test in all eight pages at once instead of
  * silently disagreeing with the proxy for months.

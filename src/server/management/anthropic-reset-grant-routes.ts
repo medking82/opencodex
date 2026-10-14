@@ -5,7 +5,7 @@
  *   POST /api/anthropic/reset-grants/consume              spend one grant
  *
  * Spending uses the user's own subscription benefit, so the POST requires the
- * dashboard session principal (AGENTS.md, "User-consent actions"); the admin token
+ * dashboard session principal to enforce user consent; the admin token
  * alone is refused. Responses carry fixed codes and fixed messages only: no
  * upstream body, exception text, token, organization id, or email. Nothing here
  * logs. Lazy-loaded by `handleAnthropicResetGrantRoutesOnDemand` in

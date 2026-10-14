@@ -191,8 +191,8 @@ export function versionSourceMismatches(root: string, expected: string): string[
  * Rewrite every source to `version` and return the paths whose bytes changed.
  *
  * Every rewrite is computed before anything is written, so an unlocatable source leaves the
- * whole set untouched. Each file is then replaced atomically (sibling temp file, rename), per
- * scripts/AGENTS.md. Temp files are all written before the first rename, so a write failure
+ * whole set untouched. Each file is then replaced atomically (sibling temp file, rename).
+ * Temp files are all written before the first rename, so a write failure
  * such as a full disk or a read-only directory also leaves every original intact.
  *
  * @throws on a malformed version or any source whose version cannot be located.

@@ -52,7 +52,6 @@ export type Manifest = {
 };
 
 const GENERATED_DOCS = ["INDEX.md"];
-const RULE_DOCS = ["AGENTS.md"];
 /**
  * Roots that stay checked even after they are deleted. Deriving the root set from the tree alone
  * means a reference becomes INVISIBLE exactly when the directory disappears, which is the moment
@@ -224,9 +223,8 @@ export function renderIndex(manifest: Manifest): string {
   lines.push("");
   lines.push(
     "Generated from " + BT + "structure/manifest.json" + BT + " by " + BT + "bun run structure:index" + BT + ". Do not edit by hand; " +
-      BT + "bun run structure:check" + BT + " fails when this file and the manifest disagree. The rules for changing anything",
+      BT + "bun run structure:check" + BT + " fails when this file and the manifest disagree.",
   );
-  lines.push("in this folder are in [" + BT + "AGENTS.md" + BT + "](AGENTS.md).");
   lines.push("");
   lines.push("## Reading order");
   for (const tier of manifest.tiers) {
@@ -328,7 +326,7 @@ export function runStructureChecks(repoRoot: string): string[] {
   else for (const entry of readdirSync(repoRoot, { withFileTypes: true })) rootEntries.add(entry.name);
 
   const present = listMarkdown(structureDir, structureDir);
-  const sotOnDisk = present.filter((p) => !p.startsWith("decisions/") && !GENERATED_DOCS.includes(p) && !RULE_DOCS.includes(p));
+  const sotOnDisk = present.filter((p) => !p.startsWith("decisions/") && !GENERATED_DOCS.includes(p));
   const declared = manifest.docs.map((d) => d.path);
 
   // 1. doc map parity

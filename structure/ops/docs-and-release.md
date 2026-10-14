@@ -42,7 +42,7 @@ The account reference documents the [Orca source-owned import](../codex-home.md#
 Its local-only command is declared in `src/cli/capabilities.ts`, and the generated skill surface
 lists its required source/registry paths and preview/apply flags. The index and domain chapters follow the [CLI reference generation contract](../cli-management.md#generated-operating-reference).
 
-Local validation follows [the contributor test policy](../../AGENTS.md#commands): run the
+Local validation follows [the contributor test policy](../../CONTRIBUTING.md#local-validation-and-hooks): run the
 suite by default, with a documented resource exception requiring focused regression tests.
 `scripts/setup-hooks.ts` retires only an exact match for the old managed pre-push and
 post-merge shims; custom hooks are preserved. Required current-head CI and
@@ -285,13 +285,11 @@ image committed anywhere else is caught by review, not by a gate.
 
 Cross-cutting structure contracts are maintained by editing `structure/manifest.json`, the authority
 statement, and any dependent whose local explanation changes. Regenerate `structure/INDEX.md` with
-the owning command and require the structure check in hosted CI. The
-[structure rules](../AGENTS.md#the-source-to-doc-map) retain review of every document mapped to a
-changed source area even when no text edit is needed.
+the owning command and require the structure check in hosted CI.
 
 ## Branch and devlog policy
 
-[`AGENTS.md`](../../AGENTS.md) and [`MAINTAINERS.md`](../../MAINTAINERS.md) are authoritative; this section
+[`MAINTAINERS.md`](../../MAINTAINERS.md) is authoritative; this section
 exists so the repository-shape source of truth does not omit the shape of its own history.
 
 - `dev` is the single integration branch and the target for ordinary pull requests. `main` moves only

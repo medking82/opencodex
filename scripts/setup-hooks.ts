@@ -98,4 +98,4 @@ if (failures.length > 0) {
   process.exitCode = 1;
 }
 
-console.log("Run validation explicitly before review; see AGENTS.md for test scope.");
+console.log("Run validation explicitly before review; see CONTRIBUTING.md for test scope.");
